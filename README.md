@@ -37,3 +37,42 @@ After successfully starting you should see:
 --
 To open the project in IntelliJ do the following:
 
+1. Open IntelliJ and choose **Import Project**.
+2. Navigate and open your cloned repository.
+3. Pick settings similar to the following:
+
+<img src="Support/ReadMeAssets/import01.png" />
+
+<img src="Support/ReadMeAssets/import02.png" />
+
+After opening the project in IntelliJ, install the **IntelliJ Jetty Runner** plugin, then create a new run profile similar to this:
+
+<img src="Support/ReadMeAssets/jetty_runner.png" />
+
+You will then have a run profile that can be used to launch the server from within IntelliJ.
+
+Also, if you wish, you can run the Gradle task **appRun** from the **Gretty** task group to launch the server:
+
+<img src="Support/ReadMeAssets/gretty.png" />
+
+> Opinion: The Jetty Runner plugin is much nicer to use while in IntelliJ!
+
+--
+### Demo APIs
+
+There are only two APIs in the sample that simply illustrate registering and triggering notifications.
+
+**Registering**
+
+- POST
+- http://localhost:8080/register
+- Content-Type: application/json
+
+```
+iOS client would invoke this
+{
+	"platform": "ios",
+	"userId": "AppleUser",
+	"token": "APNS-push-token-provided-by-iOS-operating-system"
+}
+```
