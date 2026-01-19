@@ -76,3 +76,81 @@ iOS client would invoke this
 	"token": "APNS-push-token-provided-by-iOS-operating-system"
 }
 ```
+```
+Android client would invoke this
+{
+	"platform": "android",
+	"userId": "AndroidUser",
+	"token": "Firebase-registration-id-provided-by-operating-system"
+}
+```
+
+**Send notification**
+
+- POST
+- http://localhost:8080/send
+- Content-Type: application/json
+
+```
+{
+	"userId": "UserIdToTarget",
+	"notificationTitle": "Title here!",
+	"notificationBody": "Body here!"
+}
+```
+
+--
+### iOS notification integration
+
+There are plenty of articles on the net about how to do this. Here is a super basic example of some of the common lifecycle callbacks in the main application delegate to deal with notifications (by no means exhaustive!):
+
+```swift
+import UIKit
+import UserNotifications
+
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    var window: UIWindow?
+    
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+        if #available(iOS 10.0, *) {
+            let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
+            UNUserNotificationCenter.current().requestAuthorization(options: authOptions, completionHandler: { _, _ in })
+        } else {
+            let settings: UIUserNotificationSettings = UIUserNotificationSettings(types: [.alert, .badge, .sound], categories: nil)
+            application.registerUserNotificationSettings(settings)
+        }
+        
+        application.registerForRemoteNotifications()
+        
+        // Notification data can potentially be delivered in this method too.
+        
+        return true
+    }
+
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) {
+	    // Notification can be processed here
+        print("NOTIFICATION RECEIVED! \(userInfo)")
+    }
+    
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        let tokenParts = deviceToken.map { data -> String in
+            return String(format: "%02.2hhx", data)
+        }
+
+        let token = tokenParts.joined()
+        
+        // LOOK: The token can now be sent to the app server for registration
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("Failed to register: \(error)")
+    }
+}
+
+```
+
+--
+### Android notification integration
+
+The documentation on Firebase runs through in fair detail how to configure an Android application: [https://firebase.google.com/docs/cloud-messaging/android/client](https://firebase.google.com/docs/cloud-messaging/android/client)
