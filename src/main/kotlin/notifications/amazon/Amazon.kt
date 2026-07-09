@@ -47,3 +47,52 @@ object Amazon {
 
     Typically after creating a platform for both iOS and Android, their platform ARNs look similar to:
 
+    arn:aws:sns:ap-southeast-2:000000000000:app/GCM/Push-Notifications-Android
+    arn:aws:sns:ap-southeast-2:000000000000:app/APNS_SANDBOX/Push-Notifications-Apple
+
+    Just copy them from the Amazon console after creating them.
+    */
+
+    private val androidPlatformArn = "- Enter your Android platform ARN from AWS console -"
+    private val iosPlatformArn = "- Enter your iOS platform ARN from AWS console -"
+
+    /*
+    Accessing the Amazon APIs requires credentials aligned with your AWS account.
+
+    One way to use credentials is through an AWS user account. To create an AWS user account go here:
+
+    http://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html
+
+    Create a new user, then assign them into a new group that has SNS access rights (you might have to
+    create a new group with Amazon SNS rights). After creating that user, you will need to copy the
+    'access key' and the 'secret key'. Likely you will have a secure strategy for storing these credentials
+    in your server environment but for this simple demo they are just defined inline below:
+     */
+    private val accessKey = "- Enter your access key for your AWS SNS user -"
+    private val secretKey = "- Enter your secret key for your AWS SNS user -"
+
+    private val snsClient by lazy {
+        // Requests to Amazon can be done through an Amazon SNS client. It is a heavy process to initialise
+        // one so we can just use a single instance of it.
+        AmazonSNSClientBuilder.standard()
+                .withRegion(Regions.AP_SOUTHEAST_2)
+                .withCredentials(AWSStaticCredentialsProvider(BasicAWSCredentials(accessKey, secretKey)))
+                .build()
+    }
+
+    // Registration of a mobile device requires knowledge of which platform (eg iOS/Android) along with
+    // the relevent platform specific push notification token supplied by the client operating system.
+    fun registerEndPoint(platform: Platform, userId: String, token: String): Boolean {
+        val request = CreatePlatformEndpointRequest().apply {
+            this.token = token
+            this.platformApplicationArn = when (platform) {
+                Platform.ANDROID -> androidPlatformArn
+                Platform.IOS -> iosPlatformArn
+            }
+        }
+
+        try {
+            println("About to register user '$userId' for endpoint: $token")
+            // 'Registering' a new push token is done by creating a new 'endpoint' within Amazon SNS.
+            // The creation of the endpoint will return an ARN which can then be stored in our own
+            // server. That endpoint ARN can then be used to target push notifications.
