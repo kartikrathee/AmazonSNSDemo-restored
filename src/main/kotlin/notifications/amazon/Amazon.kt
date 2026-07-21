@@ -96,3 +96,52 @@ object Amazon {
             // 'Registering' a new push token is done by creating a new 'endpoint' within Amazon SNS.
             // The creation of the endpoint will return an ARN which can then be stored in our own
             // server. That endpoint ARN can then be used to target push notifications.
+            snsClient.createPlatformEndpoint(request).run {
+                RegistrationRepository.storeRegistration(Registration(platform, userId, endpointArn))
+                return true
+            }
+        } catch (e: Exception) {
+            println("Exception while creating platform endpoint $e")
+            return false
+        }
+    }
+
+    // Publishing a notification requires us to iterate over all the endpoint ARNs that should receive
+    // the notification, then issue an Amazon API call to deliver the notification payload to each
+    // end point. At the time this demo was authored, there didn't seem to be a way to perform a 'bulk'
+    // notification call with multiple end points. Amazon have the concept of 'topics' which can be
+    // used for bulk broadcasts but endpoints need to be subscribed to a topic first.
+    fun publishNotification(userId: String, notificationTitle: String, notificationMessage: String) {
+        // In this demo, we will fetch all the 'registrations' for a given 'user id' and fire off
+        // notification requests for each ARN that the user has.
+        RegistrationRepository.getRegistrations(userId).forEach {
+            // An SNS 'PublishRequest' needs to be formed for each endpoint, populated with the
+            // relevant configuration and platform specific notification payloads.
+            val request = PublishRequest().apply {
+                messageStructure = "json"
+                targetArn = it.endpointArn
+                message = when (it.platform) {
+                    Platform.IOS -> createIOSNotification(notificationTitle, notificationMessage)
+                    Platform.ANDROID -> createAndroidNotification(notificationTitle, notificationMessage)
+                }
+                println("Sending ${it.platform} payload $message to endpoint: $targetArn")
+            }
+
+            try {
+                // We ask the SNS client to publish the request. If we care whether the notification request
+                // worked correctly, we could capture the result of the 'publish' operation to interrogate it.
+                // Also there are lots of error codes that can be identified for API access:
+                // http://docs.aws.amazon.com/sns/latest/dg/mobile-push-api-error.html
+                snsClient.publish(request)
+                println("Successfully published ${it.platform} notification to endpoint: ${it.endpointArn}")
+            } catch (e: Exception) {
+                println("Failed to publish ${it.platform} notification to endpoint ${it.endpointArn} with error: $e")
+            }
+        }
+    }
+
+    /**
+     * https://developers.google.com/cloud-messaging/concept-options#notifications_and_data_messages
+     *
+     * A basic alert produces something like:
+     *
