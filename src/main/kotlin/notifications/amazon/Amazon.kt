@@ -145,3 +145,53 @@ object Amazon {
      *
      * A basic alert produces something like:
      *
+     * {"GCM":"{\"notification\":{\"title\":\"Title here!\",\"body\":\"Body here!\"}}"}
+     */
+    private fun createAndroidNotification(notificationTitle: String, notificationBody: String): String {
+        Jackson.mapper.run {
+            val notificationNode = createObjectNode().apply {
+                put("title", notificationTitle)
+                put("body", notificationBody)
+            }
+
+            val rootNode = createObjectNode().apply {
+                set("notification", notificationNode)
+            }
+
+            return createObjectNode().apply {
+                put("GCM", rootNode.toJson())
+            }.toJson()
+        }
+    }
+
+    /**
+     *
+     * https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/PayloadKeyReference.html
+     *
+     * A basic alert produces something like:
+     *
+     * {"APNS_SANDBOX":"{\"aps\":{\"alert\":{\"title\":\"Title here!\",\"body\":\"Body here!\"}}}"}
+     *
+     * Note: production would use 'APNS' instead of 'APNS_SANDBOX'
+     */
+    private fun createIOSNotification(notificationTitle: String, notificationBody: String): String {
+        Jackson.mapper.run {
+            val alertNode = createObjectNode().apply {
+                put("title", notificationTitle)
+                put("body", notificationBody)
+            }
+
+            val rootNode = createObjectNode().apply {
+                set("alert", alertNode)
+            }
+
+            val apsNode = createObjectNode().apply {
+                set("aps", rootNode)
+            }
+
+            return createObjectNode().apply {
+                put("APNS_SANDBOX", apsNode.toJson())
+            }.toJson()
+        }
+    }
+}
